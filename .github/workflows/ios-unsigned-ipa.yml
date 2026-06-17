@@ -1,0 +1,79 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: Local bundle identifier for this build
+        required: true
+        default: com.local.fsnotes.ios
+      strip_plugins:
+        description: Remove app extensions from the .app before packaging
+        required: true
+        type: choice
+        options:
+          - "1"
+          - "0"
+        default: "1"
+      cocoapods_repo_update:
+        description: Run pod install --repo-update
+        required: true
+        type: choice
+        options:
+          - "0"
+          - "1"
+        default: "0"
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/ios-unsigned-ipa.yml
+      - scripts/build_ios_unsigned_ipa.sh
+      - Podfile
+      - FSNotes.xcodeproj/**
+      - FSNotes iOS/**
+      - FSNotesCore/**
+
+jobs:
+  build-ios-ipa:
+    runs-on: macos-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          ruby --version
+          pod --version || true
+
+      - name: Build IPA
+        env:
+          BUNDLE_ID: ${{ github.event.inputs.bundle_id || 'com.local.fsnotes.ios' }}
+          STRIP_PLUGINS: ${{ github.event.inputs.strip_plugins || '1' }}
+          COCOAPODS_REPO_UPDATE: ${{ github.event.inputs.cocoapods_repo_update || '0' }}
+        run: |
+          chmod +x scripts/build_ios_unsigned_ipa.sh
+          scripts/build_ios_unsigned_ipa.sh
+
+      - name: Upload IPA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FSNotes-iOS-IPA
+          path: |
+            build/ios-unsigned/FSNotes-iOS-unsigned.ipa
+          if-no-files-found: warn
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FSNotes-iOS-build-logs
+          path: |
+            build/ios-unsigned/logs
+            build/ios-unsigned/FSNotes-iOS.xcresult
+          if-no-files-found: warn
