@@ -107,6 +107,8 @@ COMMON_BUILD_ARGS=(
   PROVISIONING_PROFILE_SPECIFIER=
   CODE_SIGN_ENTITLEMENTS=
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
+  ASSETCATALOG_COMPILER_APPICON_NAME=
+  ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS=NO
 )
 
 run_and_log build-settings xcodebuild "${COMMON_BUILD_ARGS[@]}" -showBuildSettings
@@ -116,7 +118,7 @@ run_and_log xcodebuild xcodebuild \
   -derivedDataPath "$DERIVED_DATA" \
   -resultBundlePath "$XCRESULT_PATH" \
   SYMROOT="$SYMROOT" \
-  clean build
+  build
 
 APP_PATH=""
 while IFS= read -r candidate; do
