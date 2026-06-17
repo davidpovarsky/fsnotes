@@ -36,3 +36,16 @@ class MainNavigationController: UINavigationController {
 //        }
 //    }
 }
+
+#if compiler(<6.2)
+extension UINavigationItem {
+    var subtitle: String? {
+        get { nil }
+        set { }
+    }
+
+    var searchBarPlacementBarButtonItem: UIBarButtonItem {
+        return UIBarButtonItem(barButtonSystemItem: .search, target: nil, action: nil)
+    }
+}
+#endif
