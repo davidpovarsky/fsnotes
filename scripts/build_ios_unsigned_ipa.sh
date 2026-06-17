@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Build FSNotes iOS and package the built app bundle as an IPA artifact.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/build/ios-unsigned}"
 LOG_DIR="$OUTPUT_DIR/logs"
