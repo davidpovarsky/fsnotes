@@ -94,6 +94,9 @@ if [ ! -d "$WORKSPACE" ]; then
   exit 1
 fi
 
+# Do not override PRODUCT_BUNDLE_IDENTIFIER here. xcodebuild applies that override
+# to every target, including embedded frameworks, which makes iOS reject the IPA
+# because multiple bundles get the same CFBundleIdentifier.
 COMMON_BUILD_ARGS=(
   -workspace "$WORKSPACE"
   -scheme "$SCHEME"
@@ -106,7 +109,6 @@ COMMON_BUILD_ARGS=(
   DEVELOPMENT_TEAM=
   PROVISIONING_PROFILE_SPECIFIER=
   CODE_SIGN_ENTITLEMENTS=
-  PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
   ASSETCATALOG_COMPILER_APPICON_NAME=
   ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS=NO
 )
@@ -133,6 +135,11 @@ if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
 fi
 
 echo "Found app bundle: $APP_PATH" | tee "$LOG_DIR/package.log"
+
+# Change only the application bundle identifier after the build. Embedded frameworks
+# keep their own identifiers, so iOS will not see duplicate bundle IDs.
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$APP_PATH/Info.plist"
+echo "Set app CFBundleIdentifier to $BUNDLE_ID" | tee -a "$LOG_DIR/package.log"
 
 if [ "$STRIP_PLUGINS" = "1" ] && [ -d "$APP_PATH/PlugIns" ]; then
   echo "Removing PlugIns from app bundle" | tee -a "$LOG_DIR/package.log"
