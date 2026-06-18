@@ -16,6 +16,7 @@ CONFIGURATION="${CONFIGURATION:-Release}"
 BUNDLE_ID="${BUNDLE_ID:-com.local.fsnotes.ios}"
 STRIP_PLUGINS="${STRIP_PLUGINS:-1}"
 COCOAPODS_REPO_UPDATE="${COCOAPODS_REPO_UPDATE:-0}"
+PATCH_ICLOUD_FATAL="${PATCH_ICLOUD_FATAL:-1}"
 
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
 
@@ -70,6 +71,7 @@ mkdir -p "$LOG_DIR" "$DERIVED_DATA" "$SYMROOT"
   echo "BUNDLE_ID=$BUNDLE_ID"
   echo "STRIP_PLUGINS=$STRIP_PLUGINS"
   echo "COCOAPODS_REPO_UPDATE=$COCOAPODS_REPO_UPDATE"
+  echo "PATCH_ICLOUD_FATAL=$PATCH_ICLOUD_FATAL"
   echo "macOS=$(sw_vers -productVersion 2>/dev/null || true)"
   echo ""
   xcodebuild -version || true
@@ -77,6 +79,25 @@ mkdir -p "$LOG_DIR" "$DERIVED_DATA" "$SYMROOT"
   ruby --version || true
   pod --version || true
 } | tee "$LOG_DIR/environment.log"
+
+if [ "$PATCH_ICLOUD_FATAL" = "1" ]; then
+  VIEW_CONTROLLER="$ROOT_DIR/FSNotes iOS/ViewController.swift"
+  if grep -q 'fatalError("This app was not built with the proper entitlement requests.")' "$VIEW_CONTROLLER"; then
+    echo "Patching iCloud entitlement fatalError for local IPA build" | tee "$LOG_DIR/source-patch.log"
+    python3 - <<'PY'
+from pathlib import Path
+path = Path('FSNotes iOS/ViewController.swift')
+text = path.read_text()
+old = '            fatalError("This app was not built with the proper entitlement requests.")'
+new = '            print("iCloud key-value store is unavailable in this local IPA build; continuing without that entitlement.")'
+if old not in text:
+    raise SystemExit('Expected iCloud entitlement fatalError was not found')
+path.write_text(text.replace(old, new, 1))
+PY
+  else
+    echo "iCloud entitlement fatalError patch was not needed" | tee "$LOG_DIR/source-patch.log"
+  fi
+fi
 
 if ! command -v pod >/dev/null 2>&1; then
   run_and_log install-cocoapods sudo gem install cocoapods
