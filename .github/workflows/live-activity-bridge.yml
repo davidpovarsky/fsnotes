@@ -5,7 +5,6 @@ on:
     workflows:
       - "Build iOS IPA"
     types:
-      - requested
       - in_progress
       - completed
 
